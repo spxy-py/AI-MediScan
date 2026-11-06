@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI MediScan — Physical Wound Analysis</title>
+<meta name="description" content="ระบบช่วยประเมินความเสี่ยงเบื้องต้นของบาดแผลด้วย AI (Preliminary Screening — ไม่ใช่การวินิจฉัยโรค)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================== Header ===================== -->
+<header class="site-header">
+  <div class="container site-header__inner">
+    <div class="brand">AI MediScan</div>
+    <nav class="nav-links">
+      <a href="#about">About</a>
+      <a href="#help">Help</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===================== Main ===================== -->
+<main class="container">
+
+  <div class="hero">
+    <h1>Physical Wound Analysis</h1>
+    <p>Expert Intelligence with a Human Touch. อัปโหลดหรือถ่ายภาพบาดแผลเพื่อรับการ<strong>ประเมินความเสี่ยงเบื้องต้น</strong>ทันที</p>
+    <p class="disclaimer-note">⚠ ระบบนี้เป็นเพียงการประเมินความเสี่ยงเบื้องต้น ไม่ใช่การวินิจฉัยโรค และไม่สามารถทดแทนคำแนะนำจากแพทย์ได้</p>
+  </div>
+
+  <div class="main-grid">
+
+    <!-- ===================== Left Column ===================== -->
+    <div class="col-left">
+
+      <!-- Step 1: Upload / Camera -->
+      <section class="panel" id="step-1">
+        <div class="step-head">
+          <div class="step-badge active" id="step1-badge">1</div>
+          <h2 class="step-title">Upload Image</h2>
+        </div>
+
+        <div class="capture-tabs" role="tablist" aria-label="วิธีการรับภาพ">
+          <button class="capture-tab active" id="tab-upload" type="button" role="tab" aria-selected="true">
+            <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> อัปโหลดภาพ
+          </button>
+          <button class="capture-tab" id="tab-camera" type="button" role="tab" aria-selected="false">
+            <span class="material-symbols-outlined" style="font-size:18px;">photo_camera</span> ถ่ายภาพ
+          </button>
+        </div>
+
+        <!-- Upload / drag&drop mode -->
+        <div id="upload-mode">
+          <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="ลากไฟล์ภาพมาวาง หรือคลิกเพื่อเลือกไฟล์">
+            <span class="material-symbols-outlined icon" style="font-size:40px;">cloud_upload</span>
+            <h3>Drag &amp; drop image here</h3>
+            <p>or click to browse from your device (JPG, PNG — สูงสุด 10MB)</p>
+            <button class="btn btn-ghost" id="select-file-btn" type="button">Select File</button>
+            <input type="file" id="file-input" accept="image/png, image/jpeg, image/jpg" class="visually-hidden">
+          </div>
+          <p class="upload-error" id="upload-error"></p>
+        </div>
+
+        <!-- Camera mode -->
+        <div class="camera-view" id="camera-mode">
+          <div class="camera-preview-frame" style="display:flex; justify-content:center; align-items:center; min-height:220px; background:#f8fafc; border:1px solid #dce6f4; border-radius:16px; overflow:hidden;">
+            <video id="camera-stream" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:block;"></video>
+          </div>
+          <canvas id="camera-canvas" class="visually-hidden"></canvas>
+          <div class="camera-actions">
+            <button class="btn btn-ghost" id="camera-start-btn" type="button">
+              <span class="material-symbols-outlined" style="font-size:18px;">videocam</span> เปิดกล้อง
+            </button>
+            <button class="btn btn-primary" id="camera-capture-btn" type="button" style="display:none;">
+              <span class="material-symbols-outlined" style="font-size:18px;">photo_camera</span> ถ่ายภาพ
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-wrap" id="preview-wrap">
+          <div class="preview-img-frame">
+            <img id="preview-img" src="" alt="ภาพบาดแผลที่เลือก">
+            <button class="preview-remove" id="preview-remove-btn" type="button" aria-label="ลบภาพนี้">
+              <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Classification Results -->
+      <section class="panel step-section is-disabled" id="step-2">
+        <div class="step-head">
+          <div class="step-badge" id="step2-badge">2</div>
+          <h2 class="step-title">Classification Results</h2>
+        </div>
+
+        <p class="result-empty" id="result-empty-text">Awaiting image upload...</p>
+
+        <!-- Skeleton loading -->
+        <div id="result-skeleton" style="display:none;">
+          <div class="skeleton skeleton-line" style="width:40%;"></div>
+          <div class="skeleton skeleton-block"></div>
+        </div>
+
+        <div class="result-content" id="result-content">
+          <div class="result-row">
+            <span class="result-label">ประเภทบาดแผล (Wound Type)</span>
+            <span class="result-value" id="result-wound-type">—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">ความมั่นใจของโมเดล (Confidence)</span>
+            <span class="result-value" id="result-confidence-text">—</span>
+          </div>
+          <div class="confidence-bar"><div class="confidence-bar__fill" id="confidence-bar-fill" style="width:0%;"></div></div>
+        </div>
+      </section>
+
+      <!-- Step 3: Patient info + symptoms -->
+      <section class="panel" id="step-3">
+        <div class="step-head">
+          <div class="step-badge" id="step3-badge">3</div>
+          <h2 class="step-title">Describe Symptoms</h2>
+        </div>
+
+        <form id="analysis-form">
+          <div class="field-grid cols-3">
+            <div class="field">
+              <label for="field-age">อายุ (ปี)</label>
+              <input type="number" id="field-age" name="age" min="0" max="120" placeholder="เช่น 32" required>
+            </div>
+            <div class="field">
+              <label for="field-weight">น้ำหนัก</label>
+              <div class="field-inline-suffix">
+                <input type="number" id="field-weight" name="weight" min="0" max="300" placeholder="60" required>
+                <span>กก.</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="field-height">ส่วนสูง</label>
+              <div class="field-inline-suffix">
+                <input type="number" id="field-height" name="height" min="0" max="250" placeholder="165" required>
+                <span>ซม.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="field-cause">แผลเกิดจากอะไร</label>
+              <select id="field-cause" name="cause" required>
+                <option value="" disabled selected>เลือกสาเหตุ</option>
+                <option value="cut">ของมีคมบาด</option>
+                <option value="burn">ไฟไหม้ / น้ำร้อนลวก</option>
+                <option value="fall">หกล้ม / กระแทก</option>
+                <option value="animal_bite">สัตว์กัด / แมลงต่อย</option>
+                <option value="surgical">แผลผ่าตัด</option>
+                <option value="chronic">แผลเรื้อรัง (เช่น แผลกดทับ, เบาหวาน)</option>
+                <option value="other">อื่น ๆ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="field-duration">ระยะเวลาที่เกิดแผล</label>
+              <select id="field-duration" name="duration" required>
+                <option value="" disabled selected>เลือกระยะเวลา</option>
+                <option value="lt_1h">น้อยกว่า 1 ชั่วโมง</option>
+                <option value="1_24h">1–24 ชั่วโมง</option>
+                <option value="1_3d">1–3 วัน</option>
+                <option value="4_7d">4–7 วัน</option>
+                <option value="gt_1w">มากกว่า 1 สัปดาห์</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom: var(--unit-md);">
+            <div class="pain-scale">
+              <div class="pain-scale-head">
+                <label for="field-pain">ระดับความเจ็บปวด</label>
+                <div class="pain-scale-value" id="pain-value-display">5</div>
+              </div>
+              <input type="range" id="field-pain" name="pain" min="1" max="10" value="5">
+              <div class="pain-scale-labels"><span>1 (ไม่เจ็บ)</span><span>10 (เจ็บมากที่สุด)</span></div>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label id="bleeding-label">เลือดไหลไม่หยุด</label>
+              <div class="toggle-group" role="group" aria-labelledby="bleeding-label">
+                <button type="button" class="toggle-btn" data-group="bleeding" data-value="no">ไม่ใช่</button>
+                <button type="button" class="toggle-btn" data-group="bleeding" data-value="yes">ใช่</button>
+              </div>
+            </div>
+            <div class="field">
+              <label id="numbness-label">มีอาการชาบริเวณแผล</label>
+              <div class="toggle-group" role="group" aria-labelledby="numbness-label">
+                <button type="button" class="toggle-btn" data-group="numbness" data-value="no">ไม่ใช่</button>
+                <button type="button" class="toggle-btn" data-group="numbness" data-value="yes">ใช่</button>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="field-bleeding" name="bleeding" value="no">
+          <input type="hidden" id="field-numbness" name="numbness" value="no">
+
+          <div class="field">
+            <label for="field-symptoms">อธิบายอาการเพิ่มเติม</label>
+            <div class="relative">
+              <textarea class="symptoms" id="field-symptoms" name="symptoms" maxlength="500"
+                placeholder="อธิบายอาการเบื้องต้น เช่น มีอาการปวด บวม แดง หรือมีหนองบริเวณแผล..."></textarea>
+            </div>
+            <div class="field-footer"><span id="symptoms-count">0</span>/500</div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit" id="analyze-btn" disabled>
+              <span class="material-symbols-outlined" style="font-size:18px;">auto_awesome</span>
+              Generate AI Analysis
+            </button>
+          </div>
+          <p class="consent-note">การส่งข้อมูลถือว่ายอมรับว่าผลลัพธ์เป็นเพียงการประเมินเบื้องต้น ภาพจะถูกลบออกจากระบบทันทีหลังประมวลผลเสร็จสิ้น</p>
+        </form>
+      </section>
+    </div>
+
+    <!-- ===================== Right Column: AI Assistant ===================== -->
+    <div class="col-right">
+      <section class="panel assistant-panel">
+        <div class="assistant-glow" aria-hidden="true"></div>
+
+        <div class="assistant-header">
+          <div class="left">
+            <div class="assistant-avatar">
+              <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">psychiatry</span>
+            </div>
+            <h2>AI Medical Assistant</h2>
+          </div>
+          <span class="status-chip" id="assistant-status">Draft</span>
+        </div>
+
+        <!-- Idle / loading state -->
+        <div class="assistant-body" id="assistant-idle">
+          <span class="material-symbols-outlined icon" style="font-size:56px;" id="assistant-idle-icon">query_stats</span>
+          <p class="lead" id="assistant-idle-lead">Waiting for input data to generate comprehensive analysis.</p>
+          <p class="sub" id="assistant-idle-sub">Complete steps 1–3 to receive detailed insights, first aid recommendations, and clinical cautions.</p>
+        </div>
+
+        <!-- Results state -->
+        <div class="assistant-results" id="assistant-results">
+          <div class="risk-banner" id="risk-banner">
+            <div>
+              <p class="risk-title">ระดับความเสี่ยงเบื้องต้น</p>
+              <p class="risk-level" id="risk-level-text">—</p>
+            </div>
+            <span class="chip" id="risk-chip">—</span>
+          </div>
+
+          <div class="advice-block">
+            <h3><span class="material-symbols-outlined" style="font-size:16px;">medical_services</span> คำแนะนำเบื้องต้น</h3>
+            <ul id="advice-list"></ul>
+          </div>
+
+          <div class="warning-box" id="warning-box" style="display:none;">
+            <span class="material-symbols-outlined" style="font-size:20px; flex:none;">warning</span>
+            <span id="warning-text"></span>
+          </div>
+
+          <div class="advice-block">
+            <h3><span class="material-symbols-outlined" style="font-size:16px;">local_hospital</span> ควรพบแพทย์หรือไม่</h3>
+            <p id="see-doctor-text" style="margin:0; font-size:14px;"></p>
+          </div>
+
+          <p class="disclaimer-footer">ผลลัพธ์นี้เป็นการ<strong>ประเมินความเสี่ยงเบื้องต้น (Preliminary Screening)</strong> จาก AI เท่านั้น ไม่ใช่การวินิจฉัยทางการแพทย์ กรุณาปรึกษาแพทย์หรือบุคลากรทางการแพทย์เพื่อการวินิจฉัยและรักษาที่ถูกต้อง</p>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<!-- ===================== Footer ===================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="brand">AI MediScan</div>
+    <nav class="footer-nav">
+      <a href="#privacy">Privacy Policy</a>
+      <a href="#disclaimer">Medical Disclaimer</a>
+    </nav>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
